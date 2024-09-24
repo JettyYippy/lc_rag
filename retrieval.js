@@ -51,31 +51,44 @@ const ragChain = await createStuffDocumentsChain({
   outputParser: new StringOutputParser(),
 });
 
-// Function to retrieve and generate using RAG
 async function retrieveAndGenerate(query) {
-  // Retrieve relevant documents from Pinecone
   const contextDocs = await pineconeRetriever(query);
+  
+  //console.log("Retrieved Context Docs:", contextDocs);
+  
+  if (!Array.isArray(contextDocs) || contextDocs.length === 0) {
+    throw new Error("No documents retrieved from Pinecone.");
+  }
 
-  // Check the structure of the documents retrieved
-  //console.log("Context Docs:", contextDocs);
-
-  // Prepare the documents for the ragChain
   const formattedDocs = contextDocs.map((doc) => ({ text: doc.text }));
+  
+  //console.log("Formatted Docs:", formattedDocs);
 
-  // Ensure the documents array is passed correctly to the ragChain
-  const response = await ragChain.invoke({
+  // Log the invocation parameters
+  console.log("Invoking ragChain with:", {
     question: query,
-    input_documents: formattedDocs  // Change `documents` to `input_documents`
+    context: formattedDocs,  // Change here to use "context"
   });
 
-  console.log("Formatted Docs:", formattedDocs);
-
-  return response;
+  try {
+    const response = await ragChain.invoke({
+      question: query,
+      context: formattedDocs  // Pass documents under "context"
+    });
+    
+    return response;
+  } catch (error) {
+    console.error("Error during ragChain invocation:", error);
+    throw error; // Rethrow the error for further handling if needed
+  }
 }
+
+
+
 
 // Example usage
 (async () => {
-  const question = "What is Task Decomposition?";
+  const question = "What are the different types of heart failure?";
   const answer = await retrieveAndGenerate(question);
   console.log(answer);
 })();
